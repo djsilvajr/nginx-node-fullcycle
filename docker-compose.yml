@@ -2,15 +2,21 @@ version: '3'
 services:
   node:
     build: ./node
+    container_name: node-fc
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh
+    command: ["npm", "start"]
     ports:
       - "3000:3000"
     volumes:
       - ./node:/usr/src/app
     networks:
       - fullcycle-desafio
+    depends_on:
+      - db
 
   nginx:
     image: nginx:alpine
+    container_name: nginx-fc
     ports:
       - "8080:80"
     volumes:
@@ -19,6 +25,25 @@ services:
       - node
     networks:
       - fullcycle-desafio
+
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=djsilvajr
+      - MYSQL_PASSWORD=123456
+    ports:
+      - "3306:3306"
+    command: --innodb-use-native-aio=0
+    container_name: db-fc
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      - fullcycle-desafio
+
 
 networks:
   fullcycle-desafio:
