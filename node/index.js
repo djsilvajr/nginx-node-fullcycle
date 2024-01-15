@@ -3,12 +3,12 @@ const app = express();
 const dbConnection = require('./mysql');
 const port = 3000;
 
-// Convert db.query to a Promise
+
 function queryDatabase(query) {
     const db = dbConnection();
     return new Promise((resolve, reject) => {
         db.query(query, (error, results, fields) => {
-            db.end(); // End connection after query
+            db.end(); 
             if (error) {
                 reject(error);
             } else {
@@ -30,8 +30,11 @@ app.get('/', async (req, res) => {
         }
 
         results = await queryDatabase('SELECT * FROM user_test');
-        res.send('ending of aplication');
 
+
+        const html = buildUsersHtml(results)
+
+        res.send(html);
 
     } catch (error) {
         res.status(500).send('Database query error: ' + error.message);
@@ -48,6 +51,59 @@ function isEmpty(value) {
         (Array.isArray(value) && value.length === 0) ||
         (value.constructor === Object && Object.keys(value).length === 0)
     );
+}
+
+function buildUsersHtml(users) {
+    let html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>User List</title>
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            th, td {
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Full Cycle Rocks!</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- User rows will go here -->`
+                users.forEach(user => {
+                    html += `<tr>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                    </tr>`
+                })
+            html += `</tbody>
+        </table>
+    </body>
+    </html>
+    `
+
+    return html
 }
 
 async function createTable() {
