@@ -15,7 +15,7 @@ function connect() {
         console.error('Error connecting to MySQL:', error);
         return;
         }
-        console.log('Connected to MySQL database');
+        //console.log('Connected to MySQL database');
     });
 
     return connection;

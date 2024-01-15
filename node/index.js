@@ -3,33 +3,54 @@ const app = express();
 const dbConnection = require('./mysql');
 const port = 3000;
 
-
-app.get('/', (req,res) => {
-
-    let user = process.env.DATABASE_HOST
+// Convert db.query to a Promise
+function queryDatabase(query) {
     const db = dbConnection();
+    return new Promise((resolve, reject) => {
+        db.query(query, (error, results, fields) => {
+            db.end(); // End connection after query
+            if (error) {
+                reject(error);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+}
 
-    //console.log(db)
-    res.send('testing proxy reverse using nginx and node '+ user)
-})
+app.get('/', async (req, res) => {
+    try {
+        let results = await queryDatabase('SHOW TABLES LIKE "user_test"');
+        console.log('verificando tabela');
 
-app.get('/tables', (req,res) => {
-
-    const db = dbConnection();
-
-    db.query('SHOW TABLES', (error, results, fields) => {
-        if (error) {
-            res.status(500).send('Database error');
-            throw error;
+        if (isEmpty(results)) {
+            console.log('Creating table users');
+            await createTable();
+            await insertUsers();
         }
 
-        res.send('Table created:', results);
-        db.end();
-    });
-})
+        results = await queryDatabase('SELECT * FROM user_test');
+        res.send('ending of aplication');
 
-app.post('/create-table', (req,res) => {
 
+    } catch (error) {
+        res.status(500).send('Database query error: ' + error.message);
+    }
+});
+
+function isEmpty(value) {
+    return (
+        value === undefined ||
+        value === null ||
+        value === false ||
+        value === 0 ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0) ||
+        (value.constructor === Object && Object.keys(value).length === 0)
+    );
+}
+
+async function createTable() {
     const createTableQuery = `
         CREATE TABLE user_test (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,16 +58,24 @@ app.post('/create-table', (req,res) => {
             email VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`;
+    await queryDatabase(createTableQuery);
+}
 
-    db.query(createTableQuery, (error, results, fields) => {
-        if (error) throw error;
-        res.send('Table created:', results);
-    });
+async function insertUsers() {
+    const createUsersQuery = `
+        INSERT INTO 
+            user_test (
+                username, 
+                email, 
+                created_at
+            ) VALUES (
+                'usrFullcycle', 
+                'emailFullcycleChallange@gmail.com', 
+                NOW()
+            )`;
+    await queryDatabase(createUsersQuery);
+}
 
-    db.end();
-
-})
-
-app.listen(port, ()=> {
-    console.log('rodando na porta '+ port)
+app.listen(port, () => {
+    console.log('Running on port ' + port)
 })
